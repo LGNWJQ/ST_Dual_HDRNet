@@ -41,7 +41,7 @@ def train(config):
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs, eta_min=3e-6)
     ST = utils.Structure_Tensor().to(device)
 
-    loss_fun = nn.MSELoss()
+    mse_fun = nn.MSELoss()
 
     # 载入权重
     pre_epoch = 0
@@ -109,16 +109,16 @@ def train(config):
             """
             if epoch % 2 == 0:
                 val_gamma_1 = utils.Gamma_Correction(val_LDR_1)
-                val_st_1 = ST(val_LDR_1)
+                val_st_1, _ = ST(val_LDR_1)
                 val_X1 = torch.cat([val_LDR_1, val_gamma_1, val_st_1], dim=1)
                 val_gamma_2 = utils.Gamma_Correction(val_LDR_2)
-                val_st_2 = ST(val_LDR_2)
+                val_st_2, _ = ST(val_LDR_2)
                 val_X2 = torch.cat([val_LDR_2, val_gamma_2, val_st_2], dim=1)
 
                 with torch.no_grad():
                     model.eval()
                     val_reconstruction = model(val_X1, val_X2)
-                    val_loss = loss_fun(utils.Mu_Law(val_reconstruction), utils.Mu_Law(val_HDR))
+                    val_loss = mse_fun(utils.Mu_Law(val_reconstruction), utils.Mu_Law(val_HDR))
                     val_PSNR = utils.PSNR(utils.Mu_Law(val_reconstruction), utils.Mu_Law(val_HDR))
                     model.train()
 
@@ -146,26 +146,34 @@ def train(config):
             HDR = batch['HDR'].to(device)
 
             gamma_1 = utils.Gamma_Correction(LDR_1)
-            st_1 = ST(LDR_1)
+            st_1, _ = ST(LDR_1)
             X1 = torch.cat([LDR_1, gamma_1, st_1], dim=1)
             gamma_2 = utils.Gamma_Correction(LDR_2)
-            st_2 = ST(LDR_2)
+            st_2, _ = ST(LDR_2)
             X2 = torch.cat([LDR_2, gamma_2, st_2], dim=1)
 
             reconstruction = model(X1, X2)
 
             optimizer.zero_grad()
-            loss = loss_fun(utils.Mu_Law(reconstruction), utils.Mu_Law(HDR))
+            loss1 = mse_fun(utils.Mu_Law(reconstruction), utils.Mu_Law(HDR))
+            _, re_st_tensor = ST(reconstruction)
+            _, HDR_st_tensor = ST(HDR)
+            loss2 = mse_fun(re_st_tensor, HDR_st_tensor)
+
+            loss = loss1 + config.ST_parm * loss2
+
             loss.backward()
             optimizer.step()
 
             loop.set_description(f"Train Epoch [{epoch}/{config.epochs}]")
-            loop.set_postfix(MSE_Loss=loss.item())
+            loop.set_postfix(ST_Loss=loss2.item(), MSE_Loss=loss1.item())
             step += 1
 
         scheduler.step()
         writer.add_scalar('learning_rate', optimizer.param_groups[0]['lr'], global_step=epoch)
         writer.add_scalar("Train_Loss", loss.item(), global_step=epoch)
+        writer.add_scalar("MSE_Loss", loss1.item(), global_step=epoch)
+        writer.add_scalar("ST_Loss", loss2.item(), global_step=epoch)
         if epoch % config.save_frequence == 0:
             save_path = os.path.join(checkpoint_path, f'epoch_{epoch}.pth')
             torch.save(
@@ -176,6 +184,7 @@ def train(config):
                 }, save_path
             )
         utils.del_file(checkpoint_path)
+
 
 if __name__ == "__main__":
     config = HDR_config()
