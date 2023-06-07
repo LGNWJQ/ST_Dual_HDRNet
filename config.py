@@ -16,7 +16,7 @@ def HDR_config():
 
     # 训练相关参数
     parser.add_argument('--experiment_name', type=str, default="ST_HDR_0.2", help='本次实验名称')
-    parser.add_argument('--ST_parm', type=float, default=1e-5, help='结构张量损失的系数')
+    parser.add_argument('--ST_parm', type=float, default=1e-4, help='结构张量损失的系数')
     parser.add_argument('--seed', type=int, default=3407, help='随机种子，用于保证实验可复现')
     parser.add_argument('--save_frequence', type=int, default=200, help='保存权重的频率')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='学习率')
