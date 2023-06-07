@@ -52,7 +52,6 @@ def del_file(path, threshold=5):
             os.remove(file_path)
 
 
-
 class Structure_Tensor(nn.Module):
     def __init__(self):
         super(Structure_Tensor, self).__init__()
@@ -113,22 +112,31 @@ class Structure_Tensor(nn.Module):
         Corner = torch.zeros_like(H)
         Corner[(H >= h_) * (K.abs() > 1e-6)] = 1.0
 
-        return 1.0 - Flat
+        return 1.0 - Flat, torch.cat([Ix2, Ixy, Iy2, Ixy], dim=1)
 
 
 if __name__ == "__main__":
-    path = "D:/IEEE_SPL/Experiment/HDR_0.1/checkpoint/"
+    # path = "D:/IEEE_SPL/Experiment/HDR_0.1/checkpoint/"
+    #
+    # file_list = os.listdir(path)
+    # del_file_list = file_list[:-5]
+    #
+    # for file in del_file_list:
+    #     file_path = os.path.join(path, file)
+    #     os.remove(file_path)
+    #
+    # num = len(file_list)
+    #
+    # print(num)
+    device = torch.device("cuda")
+    ST = Structure_Tensor().to(device)
+    img = torch.randn(5, 3, 256, 256).to(device)
 
-    file_list = os.listdir(path)
-    del_file_list = file_list[:-5]
+    out1, out2 = ST(img)
+    print(out1.shape)
+    print(out2.shape)
 
-    for file in del_file_list:
-        file_path = os.path.join(path, file)
-        os.remove(file_path)
 
-    num = len(file_list)
-
-    print(num)
 
 
 
