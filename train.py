@@ -167,7 +167,7 @@ def train(config):
             optimizer.step()
 
             loop.set_description(f"Train Epoch [{epoch}/{config.epochs}]")
-            loop.set_postfix(ST_Loss=loss2.item(), MSE_Loss=loss1.item())
+            loop.set_postfix(ST_Loss=loss2.item(), MSE_Loss=loss1.item(), All_Loss=loss.item())
             step += 1
 
         scheduler.step()
