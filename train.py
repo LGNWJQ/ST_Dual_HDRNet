@@ -159,6 +159,7 @@ def train(config):
             _, re_st_tensor = ST(reconstruction)
             _, HDR_st_tensor = ST(HDR)
             loss2 = mse_fun(re_st_tensor, HDR_st_tensor)
+            loss2 = torch.sqrt(loss2)
 
             loss = loss1 + config.ST_parm * loss2
 
